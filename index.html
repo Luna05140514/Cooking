@@ -1,28 +1,63 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 <title>小廚神食堂</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
+<script>
+// 確保 <head> 裡的 viewport 也固定縮放（頁面外框自帶的 viewport 會被改成這個設定）
+(function () {
+  var want = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover';
+  var metas = document.querySelectorAll('meta[name="viewport"]');
+  if (!metas.length) { var m = document.createElement('meta'); m.name = 'viewport'; document.head.appendChild(m); metas = [m]; }
+  for (var i = 0; i < metas.length; i++) metas[i].setAttribute('content', want);
+  var head = metas[0]; if (head.parentNode !== document.head) document.head.appendChild(head);
+})();
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Huninn&display=swap">
 <style>
-/* Layout: portrait 9:16 top-down tabletop on one canvas; the wood table extends to fill any screen.
+/* Layout: landscape 3:2 (iPad 橫放) top-down tabletop on one canvas; the wood table extends to fill any screen.
    Single deliberate look (warm wood + navy/indigo ceramics), no dark theme. */
 :root{ --wood:#c99d63; --indigo:#1e2d57; --ink:#2a1c17; color-scheme:light;
   --font:'Huninn','PingFang TC','Noto Sans TC','Microsoft JhengHei',sans-serif; }
 html,body{height:100%;margin:0;overflow:hidden;background:var(--wood);color:var(--ink);font-family:var(--font);
-  touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+  touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;overscroll-behavior:none;
+  -webkit-text-size-adjust:100%;text-size-adjust:100%}
+/* 固定整個畫面：不捲動、不回彈、不縮放 */
+html{position:fixed;inset:0;width:100%;height:100%}
+body{position:fixed;inset:0;width:100%;height:100%;-webkit-overflow-scrolling:auto}
+*,*::before,*::after{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;-webkit-user-drag:none}
+img,canvas{-webkit-user-drag:none;pointer-events:auto}
+#stage{position:fixed;inset:0}
+/* iPad 直放時提示轉成橫的 */
+#rotate{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(30,45,87,.92);z-index:9;pointer-events:none}
+#rotate svg{width:min(34vh,240px);height:auto}
+@media (orientation: portrait) and (pointer: coarse){ #rotate{display:flex} }
 #stage{position:relative;width:100%;height:100%}
 #cv{display:block;width:100%;height:100%;touch-action:none;outline:none}
 </style>
 <div id="stage"><canvas id="cv" tabindex="0" aria-label="小廚神食堂：俯視桌面做沙拉"></canvas></div>
+<div id="rotate" aria-label="請把 iPad 橫放"><svg viewBox="0 0 200 200" aria-hidden="true">
+  <rect x="48" y="46" width="90" height="124" rx="14" fill="#fbf3e4" stroke="#fff" stroke-width="6" opacity=".45"/>
+  <rect x="38" y="70" width="140" height="100" rx="14" fill="#fbf3e4" stroke="#fff" stroke-width="6"/>
+  <circle cx="166" cy="120" r="5" fill="#c99d63"/>
+  <path d="M40 60 A60 60 0 0 1 92 18" fill="none" stroke="#ffd34d" stroke-width="9" stroke-linecap="round"/>
+  <path d="M80 6 L98 18 L82 32" fill="none" stroke="#ffd34d" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+</svg></div>
 <script>
 (() => {
 'use strict';
-const W = 900, H = 1600, INK = '#2a1c17';
+const W = 1500, H = 1000, INK = '#2a1c17';
 const FONT = "'Huninn','PingFang TC','Noto Sans TC','Microsoft JhengHei',sans-serif";
 const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
 const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 let dpr = 1, scale = 1, ox = 0, oy = 0, cw = 0, ch = 0;
 
+window.addEventListener('orientationchange', () => setTimeout(() => { window.scrollTo(0, 0); resize(); }, 250));
+window.visualViewport && window.visualViewport.addEventListener('resize', () => { window.scrollTo(0, 0); });
 function resize() {
   const r = cv.getBoundingClientRect();
   cw = r.width; ch = r.height;
@@ -822,20 +857,22 @@ function sh(c, blur, x, y, a = .35) { const k = K(); c.shadowColor = `rgba(40,22
 function noSh(c) { c.shadowColor = 'transparent'; c.shadowBlur = 0; c.shadowOffsetX = 0; c.shadowOffsetY = 0; }
 
 /* ---------- 版面 ---------- */
-const BAND_H = 118;
-const TRAY = { x: 30, y: 148, w: 840, h: 372 };
-const BOARD = { x: 30, y: 572, w: 450, h: 356 };
-const WHOLE = { x: 168, y: 742, r: 76 };
-const BOWL = { x: 690, y: 752, R: 192, IN: 166, PILE: 136 };
-const KNIFE_REST = { x: 210, y: 985 }, KNIFE_K = .9;
-const CHOP_REST = { x: 548, y: 1000 };
-const DISH_Y = 1140, DISH_R = 60;
-const SPOON_REST = { x: 818, y: 1078 };
-const SLATE = { x: 470, y: 1290, w: 400, h: 250 };
-const CHECK = { x: 670, y: 1415 };
-const MUTE = { x: 62, y: 60 };
+// ===== iPad 橫放版面 (1500 x 1000) =====
+const BAND_H = 84;
+const TRAY = { x: 24, y: 100, w: 1452, h: 290 };
+const BOARD = { x: 24, y: 412, w: 450, h: 356 };
+const WHOLE = { x: BOARD.x + 138, y: BOARD.y + 170, r: 76 };
+const BOWL = { x: 720, y: 600, R: 192, IN: 166, PILE: 136 };
+const KNIFE_REST = { x: 204, y: 848 }, KNIFE_K = .9;
+const CHOP_REST = { x: 560, y: 852 };
+const DISH_R = 60, DISH_POS = [[1040, 470], [1220, 470], [1040, 652], [1220, 652]];
+const SPOON_REST = { x: 1408, y: 452 };
+const SLATE = { x: 960, y: 792, w: 500, h: 180 };
+const CHECK = { x: 1210, y: 882 };
+const MUTE = { x: 50, y: 42 };
+const TEA = { x: 466, y: 924 }, SOY = { x: 878, y: 932 };
 const ITEM_R = 52;
-const TRAY_X0 = 130, TRAY_DX = 166, TRAY_IN = { x: 56, y: 176, w: 788, h: 316 };
+const TRAY_X0 = 120, TRAY_DX = 166, TRAY_IN = { x: 50, y: 126, w: 1400, h: 240 };
 const TRAY_MAX = () => Math.max(0, TRAY_X0 + (Math.ceil(SALAD_KEYS.length / 2) - 1) * TRAY_DX + 80 - (TRAY_IN.x + TRAY_IN.w));
 const itemX = it => it.bx - S.scroll;
 const inTray = p => p.x > TRAY_IN.x && p.x < TRAY_IN.x + TRAY_IN.w && p.y > TRAY.y && p.y < TRAY.y + TRAY.h;
@@ -1122,14 +1159,14 @@ const GIMG_DATA = [{"src": "data:image/webp;base64,UklGRpwuAgBXRUJQVlA4WAoAAAAQA
 // 客人圖片（使用者提供的貓娘圖，去背後切成三位）
 const GIMG = GIMG_DATA.map(d => { const img = new Image(); img.src = d.src; return { ...d, img }; });
 const IMG_K = .39 / .6;     // 存檔時縮成 0.6 倍，畫面上以原圖 0.39 倍顯示
-const MOUTH_Y = 470, HEART_Y = 158;
+const MOUTH_Y = 412, HEART_Y = 124, GSC = .86, TABLE_Y = 590, DYT = TABLE_Y - 676;
 function drawGuest(c, g, face) {
   const gi = GIMG[g.i];
   if (!gi.img.complete || !gi.img.naturalWidth) { drawCatgirl(c, ['bob', 'twin', 'pony'][g.i], g.x, HEAD_Y, GS, face); return; }
   const t = G.t, jump = g.happy > 0 ? Math.abs(Math.sin(g.happy * 8)) * 16 * Math.min(1, g.happy) : 0;
   const chewS = g.chew > 0 ? Math.sin(t * 22) * .012 : 0;
   c.save(); c.translate(g.x, MOUTH_Y + Math.sin(t * 2 + g.bob) * 3 - jump);
-  c.scale(1 + chewS, 1 - chewS);
+  c.scale(GSC * (1 + chewS), GSC * (1 - chewS));
   sh(c, 16, 0, 8, .22);
   const kk = gi.k * (g.i === 1 ? .88 : 1); c.drawImage(gi.img, -gi.mx * kk, -gi.my * kk, gi.img.naturalWidth * kk, gi.img.naturalHeight * kk); noSh(c);
   c.scale(.8, .8);
@@ -1150,11 +1187,11 @@ function drawGuestMini(c, g, x, y) {
   c.restore(); circle(c, x, y, 78); c.lineWidth = 4; c.strokeStyle = '#2d4b8f'; c.stroke();
 }
 const GUESTS_DEF = [
-  { i: 0, x: 160, likes: ['Fruit', 'Nut'] },                       // 橘色貓娘：愛水果和堅果
-  { i: 1, x: 450, likes: ['Veg'] },                                // 粉紅貓娘：愛蔬菜
-  { i: 2, x: 740, likes: ['Seafood', 'Meat', 'Egg', 'Bean'] }      // 黃色貓娘：愛魚肉蛋
+  { i: 0, x: 330, likes: ['Fruit', 'Nut'] },                       // 橘色貓娘：愛水果和堅果
+  { i: 1, x: 750, likes: ['Veg'] },                                // 粉紅貓娘：愛蔬菜
+  { i: 2, x: 1170, likes: ['Seafood', 'Meat', 'Egg', 'Bean'] }      // 黃色貓娘：愛魚肉蛋
 ];
-const DINE_BOWL = { x: 450, y: 1185, s: .95 }, HEAD_Y = 445, GS = .6, FULL = 6;
+const DINE_BOWL = { x: 750, y: 838, s: .66 }, HEAD_Y = 360, GS = .6, FULL = 6;
 let D = null;
 function startDine() {
   S.scene = 'dine'; S.held = null; S.check = 0;
@@ -1174,7 +1211,7 @@ function takeChunk(near) {
   if (best) S.chunks.splice(S.chunks.indexOf(best), 1);
   return best;
 }
-function guestAt(p) { return D.guests.find(g => Math.abs(p.x - g.x) < 140 && p.y > 230 && p.y < 900); }
+function guestAt(p) { return D.guests.find(g => Math.abs(p.x - g.x) < 180 && p.y > 110 && p.y < 700); }
 function feed(g, key, sx, sy, rot) { const m = guestMouth(g); D.bites.push({ g, key, sx, sy, tx: m.x, ty: m.y, t: 0, dur: .42, rot }); g.open = .6; SFX.pop(); }
 function arrive(b) {
   const g = b.g, liked = ING[b.key].tags.some(t => g.likes.includes(t));
@@ -1239,11 +1276,11 @@ function drawLantern(c, x, y) {
 }
 function drawDine(c) {
   const v = viewRect();
-  c.fillStyle = '#f4e6cc'; c.fillRect(v.x, v.y, v.w, 700 - v.y);
-  c.fillStyle = 'rgba(200,150,95,.12)'; for (let x = Math.floor(v.x / 60) * 60; x < v.x + v.w; x += 60) c.fillRect(x, v.y, 30, 700 - v.y);
-  c.fillStyle = '#9c6a3a'; c.fillRect(v.x, 560, v.w, 140);
-  c.fillStyle = 'rgba(255,230,190,.18)'; for (let x = Math.floor(v.x / 150) * 150; x < v.x + v.w; x += 150) c.fillRect(x + 6, 575, 138, 110);
-  c.fillStyle = '#7a4e28'; c.fillRect(v.x, 556, v.w, 10);
+  c.fillStyle = '#f4e6cc'; c.fillRect(v.x, v.y, v.w, 700 + DYT - v.y);
+  c.fillStyle = 'rgba(200,150,95,.12)'; for (let x = Math.floor(v.x / 60) * 60; x < v.x + v.w; x += 60) c.fillRect(x, v.y, 30, 700 + DYT - v.y);
+  c.fillStyle = '#9c6a3a'; c.fillRect(v.x, 560 + DYT, v.w, 140);
+  c.fillStyle = 'rgba(255,230,190,.18)'; for (let x = Math.floor(v.x / 150) * 150; x < v.x + v.w; x += 150) c.fillRect(x + 6, 575 + DYT, 138, 110);
+  c.fillStyle = '#7a4e28'; c.fillRect(v.x, 556 + DYT, v.w, 10);
   drawBand(c);
   [0, 2, 1].forEach(i => { const g = D.guests[i]; drawGuest(c, g, guestFace(g)); });
   // 頭上的愛心：每吃一口亮一顆，全亮就是吃飽了
@@ -1256,13 +1293,13 @@ function drawDine(c) {
     }
   });
   // 桌子
-  c.save(); c.fillStyle = woodPattern; c.fillRect(v.x, 690, v.w, v.y + v.h - 690); c.fillStyle = 'rgba(70,35,10,.3)'; c.fillRect(v.x, 690, v.w, v.y + v.h - 690); c.restore();
-  const eg = c.createLinearGradient(0, 676, 0, 700); eg.addColorStop(0, '#8a5a32'); eg.addColorStop(1, '#5a3618'); c.fillStyle = eg; c.fillRect(v.x, 676, v.w, 24);
-  c.fillStyle = 'rgba(255,230,190,.3)'; c.fillRect(v.x, 676, v.w, 3);
+  c.save(); c.fillStyle = woodPattern; c.fillRect(v.x, 690 + DYT, v.w, v.y + v.h - 690 - DYT); c.fillStyle = 'rgba(70,35,10,.3)'; c.fillRect(v.x, 690 + DYT, v.w, v.y + v.h - 690 - DYT); c.restore();
+  const eg = c.createLinearGradient(0, TABLE_Y, 0, TABLE_Y + 24); eg.addColorStop(0, '#8a5a32'); eg.addColorStop(1, '#5a3618'); c.fillStyle = eg; c.fillRect(v.x, TABLE_Y, v.w, 24);
+  c.fillStyle = 'rgba(255,230,190,.3)'; c.fillRect(v.x, TABLE_Y, v.w, 3);
   // 每位客人的小盤子與飽足愛心
   D.guests.forEach(g => {
-    c.save(); sh(c, 12, 3, 8, .35); circle(c, g.x, 800, 70); c.fillStyle = '#f4f6fa'; c.fill(); noSh(c);
-    circle(c, g.x, 800, 64); c.lineWidth = 3; c.strokeStyle = '#2d4b8f'; c.stroke(); circle(c, g.x, 800, 50); c.lineWidth = 1.2; c.stroke(); c.restore();
+    c.save(); sh(c, 12, 3, 8, .35); circle(c, g.x, 668, 62); c.fillStyle = '#f4f6fa'; c.fill(); noSh(c);
+    circle(c, g.x, 668, 56); c.lineWidth = 3; c.strokeStyle = '#2d4b8f'; c.stroke(); circle(c, g.x, 668, 44); c.lineWidth = 1.2; c.stroke(); c.restore();
   });
   // 沙拉
   S.sauceAlpha = S.sauceAlpha ?? 1;
@@ -1283,28 +1320,28 @@ function drawDine(c) {
 }
 function drawDecor2(c) {
   // 小花瓶
-  c.save(); sh(c, 12, 3, 8, .3); circle(c, 118, 1060, 44); c.fillStyle = '#eef2f7'; c.fill(); noSh(c);
-  blueRing(c, 118, 1060, 32, 30, 10, 2.5); circle(c, 118, 1060, 30); c.fillStyle = '#dfe7f0'; c.fill();
-  [[-34, -14, -.6], [30, -22, .7], [-8, 30, 2.6], [26, 22, 2.0]].forEach(([dx, dy, a]) => leaf(c, 118 + dx, 1060 + dy, a, 10, 20, '#5cae47', 2, '#a6e08a'));
+  c.save(); sh(c, 12, 3, 8, .3); circle(c, 180, 830, 44); c.fillStyle = '#eef2f7'; c.fill(); noSh(c);
+  blueRing(c, 180, 830, 32, 30, 10, 2.5); circle(c, 180, 830, 30); c.fillStyle = '#dfe7f0'; c.fill();
+  [[-34, -14, -.6], [30, -22, .7], [-8, 30, 2.6], [26, 22, 2.0]].forEach(([dx, dy, a]) => leaf(c, 180 + dx, 830 + dy, a, 10, 20, '#5cae47', 2, '#a6e08a'));
   [[-14, -10, '#ff8fb1'], [14, -16, '#ffd0e0'], [10, 12, '#ffb3c7'], [-12, 14, '#fff1a8'], [0, 0, '#ff6f9c']].forEach(([dx, dy, col]) => {
-    for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2; circle(c, 118 + dx + Math.cos(a) * 8, 1060 + dy + Math.sin(a) * 8, 7); c.fillStyle = col; c.fill(); }
-    circle(c, 118 + dx, 1060 + dy, 4.5); c.fillStyle = '#ffd34d'; c.fill();
+    for (let k = 0; k < 5; k++) { const a = k / 5 * Math.PI * 2; circle(c, 180 + dx + Math.cos(a) * 8, 830 + dy + Math.sin(a) * 8, 7); c.fillStyle = col; c.fill(); }
+    circle(c, 180 + dx, 830 + dy, 4.5); c.fillStyle = '#ffd34d'; c.fill();
   });
   c.restore();
   // 餅乾盤
-  c.save(); sh(c, 12, 3, 8, .3); circle(c, 785, 1060, 72); c.fillStyle = '#f7f4ee'; c.fill(); noSh(c);
-  circle(c, 785, 1060, 64); c.lineWidth = 2; c.strokeStyle = '#e6b7c4'; c.stroke();
+  c.save(); sh(c, 12, 3, 8, .3); circle(c, 1060, 860, 72); c.fillStyle = '#f7f4ee'; c.fill(); noSh(c);
+  circle(c, 1060, 860, 64); c.lineWidth = 2; c.strokeStyle = '#e6b7c4'; c.stroke();
   [[-26, -24], [24, -26], [-30, 22], [26, 22], [0, 0]].forEach(([dx, dy], i) => {
-    const x = 785 + dx, y = 1060 + dy; sh(c, 4, 1, 3, .25); circle(c, x, y, 21); c.fillStyle = i === 4 ? '#c98a4a' : '#e2aa64'; c.fill(); noSh(c);
+    const x = 1060 + dx, y = 860 + dy; sh(c, 4, 1, 3, .25); circle(c, x, y, 21); c.fillStyle = i === 4 ? '#c98a4a' : '#e2aa64'; c.fill(); noSh(c);
     circle(c, x, y, 21); c.lineWidth = 1.5; c.strokeStyle = 'rgba(120,70,30,.4)'; c.stroke();
     c.fillStyle = '#5a3218'; [[-8, -6], [7, -9], [2, 6], [-6, 9], [10, 5]].forEach(([a, b]) => { ell(c, x + a, y + b, 3, 2.4, a); c.fill(); });
   });
   c.restore();
   // 馬卡龍點心架
-  c.save(); sh(c, 14, 3, 9, .32); circle(c, 118, 1420, 80); c.fillStyle = '#ffffff'; c.fill(); noSh(c);
-  circle(c, 118, 1420, 76); c.lineWidth = 3; c.strokeStyle = '#f1c6d4'; c.stroke(); circle(c, 118, 1420, 12); c.fillStyle = '#e8d3a8'; c.fill();
+  c.save(); sh(c, 14, 3, 9, .32); circle(c, 440, 870, 80); c.fillStyle = '#ffffff'; c.fill(); noSh(c);
+  circle(c, 440, 870, 76); c.lineWidth = 3; c.strokeStyle = '#f1c6d4'; c.stroke(); circle(c, 440, 870, 12); c.fillStyle = '#e8d3a8'; c.fill();
   ['#ffb3c7', '#b9e4a8', '#fff1a8', '#c9b8f0', '#ffcf9e', '#a8dcf0'].forEach((col, i) => {
-    const a = i / 6 * Math.PI * 2 - .3, x = 118 + Math.cos(a) * 48, y = 1420 + Math.sin(a) * 48;
+    const a = i / 6 * Math.PI * 2 - .3, x = 440 + Math.cos(a) * 48, y = 870 + Math.sin(a) * 48;
     sh(c, 4, 1, 3, .25); circle(c, x, y, 20); c.fillStyle = col; c.fill(); noSh(c);
     circle(c, x, y, 20); c.lineWidth = 1.2; c.strokeStyle = 'rgba(120,80,80,.35)'; c.stroke();
     circle(c, x, y, 15); c.lineWidth = 2.5; c.strokeStyle = 'rgba(255,255,255,.6)'; c.stroke();
@@ -1312,13 +1349,13 @@ function drawDecor2(c) {
   });
   c.restore();
   // 蠟燭
-  c.save(); sh(c, 10, 2, 6, .3); circle(c, 785, 1410, 46); c.fillStyle = '#d9b46a'; c.fill(); noSh(c);
-  circle(c, 785, 1410, 46); c.lineWidth = 2; c.strokeStyle = '#a07a30'; c.stroke();
-  circle(c, 785, 1410, 26); c.fillStyle = '#fffaf0'; c.fill(); circle(c, 785, 1410, 26); c.lineWidth = 1.5; c.strokeStyle = 'rgba(160,130,90,.4)'; c.stroke();
+  c.save(); sh(c, 10, 2, 6, .3); circle(c, 1320, 830, 46); c.fillStyle = '#d9b46a'; c.fill(); noSh(c);
+  circle(c, 1320, 830, 46); c.lineWidth = 2; c.strokeStyle = '#a07a30'; c.stroke();
+  circle(c, 1320, 830, 26); c.fillStyle = '#fffaf0'; c.fill(); circle(c, 1320, 830, 26); c.lineWidth = 1.5; c.strokeStyle = 'rgba(160,130,90,.4)'; c.stroke();
   const fl = 1 + Math.sin(G.t * 9) * .08 + Math.sin(G.t * 23) * .04;
-  const g = c.createRadialGradient(785, 1410, 2, 785, 1410, 70 * fl); g.addColorStop(0, 'rgba(255,220,120,.55)'); g.addColorStop(1, 'rgba(255,200,100,0)');
-  c.fillStyle = g; circle(c, 785, 1410, 70 * fl); c.fill();
-  ell(c, 785, 1410, 6 * fl, 9 * fl); c.fillStyle = '#ffb030'; c.fill(); ell(c, 785, 1411, 3, 5); c.fillStyle = '#fff6c8'; c.fill();
+  const g = c.createRadialGradient(1320, 830, 2, 1320, 830, 70 * fl); g.addColorStop(0, 'rgba(255,220,120,.55)'); g.addColorStop(1, 'rgba(255,200,100,0)');
+  c.fillStyle = g; circle(c, 1320, 830, 70 * fl); c.fill();
+  ell(c, 1320, 830, 6 * fl, 9 * fl); c.fillStyle = '#ffb030'; c.fill(); ell(c, 1320, 831, 3, 5); c.fillStyle = '#fff6c8'; c.fill();
   c.restore();
 }
 function dineHint(t) {
@@ -1382,12 +1419,12 @@ function composeSauce() {
 function reset() {
   D = null;
   S = {
-    tray: SALAD_KEYS.map((k, i) => ({ key: k, bx: TRAY_X0 + Math.floor(i / 2) * TRAY_DX, y: i % 2 ? 418 : 252, back: 0 })), scroll: 0, scrollV: 0,
+    tray: SALAD_KEYS.map((k, i) => ({ key: k, bx: TRAY_X0 + Math.floor(i / 2) * TRAY_DX, y: i % 2 ? 300 : 178, back: 0 })), scroll: 0, scrollV: 0,
     held: null, board: null, chunks: [], ingredients: [],
     stir: 0, goal: Math.PI * 5, stirred: false, sauce: {}, sauceTotal: 0,
     knife: { x: KNIFE_REST.x, y: KNIFE_REST.y, ang: 0, wig: 0 },
     chop: { x: CHOP_REST.x, y: CHOP_REST.y, ang: 0 },
-    dishes: SAUCES.map((sc, i) => ({ sc, hx: 122 + i * 186, hy: DISH_Y, x: 122 + i * 186, y: DISH_Y, tilt: 0, lift: 0 })),
+    dishes: SAUCES.map((sc, i) => ({ sc, hx: DISH_POS[i][0], hy: DISH_POS[i][1], x: DISH_POS[i][0], y: DISH_POS[i][1], tilt: 0, lift: 0 })),
     spoon: { x: SPOON_REST.x, y: SPOON_REST.y, ang: 0, sc: null, amt: 0 }, spoonLast: null, still: 0,
     scene: 'kitchen', sauceAlpha: 1,
     check: 0, end: null, lastP: null, passLen: 0, lastCut: 0, vx: 0, lastA: null
@@ -1421,7 +1458,7 @@ function doCut() {
   const kx = cutX() + WHOLE.r * 2.6 / CUTS * .5, n = b.slices.length;
   SFX.chop(); G.shake = 6; burst(kx, WHOLE.y, 8);
   for (let i = 0; i < (reduced ? 3 : 8); i++) emit('drop', kx, WHOLE.y + rand(-50, 50), { color: ING[b.key].juice, size: rand(4, 8), vx: rand(-120, 240), vy: rand(-340, -100), g: 1100, max: .6 });
-  b.slices.push({ x: 290 + n * 36, y: 690 + n * 30, t: 0, rot: rand(-.4, .4) });
+  b.slices.push({ x: BOARD.x + 260 + n * 36, y: BOARD.y + 118 + n * 30, t: 0, rot: rand(-.4, .4) });
   if (b.cuts >= CUTS) SFX.sparkle();
 }
 function sendPileToBowl() {
@@ -1470,13 +1507,13 @@ function finish() {
   const res = judge({ ingredients: S.ingredients, sauce: S.sauce });
   S.end = { t: 0, res, reac: REACTIONS[res.react] };
   SFX.fanfare(); SFX.react(res.react);
-  for (let i = 0; i < (reduced ? 12 : 60); i++) emit('conf', rand(60, 840), rand(-40, 120), { color: pick(['#ff7a9a', '#ffd34d', '#7ad65a', '#4fb0f5', '#a77bf0']), vx: rand(-80, 80), vy: rand(80, 300), g: 160, size: rand(12, 20), max: rand(2.2, 3.4), vr: rand(-8, 8) });
+  for (let i = 0; i < (reduced ? 12 : 60); i++) emit('conf', rand(60, W - 60), rand(-40, 120), { color: pick(['#ff7a9a', '#ffd34d', '#7ad65a', '#4fb0f5', '#a77bf0']), vx: rand(-80, 80), vy: rand(80, 300), g: 160, size: rand(12, 20), max: rand(2.2, 3.4), vr: rand(-8, 8) });
 }
 
 /* ---------- 輸入 ---------- */
 function down(p) {
   if (hitCircle(p, MUTE.x, MUTE.y, 44)) { SFX.setMuted(!SFX.muted); if (!SFX.muted) SFX.pop(); return; }
-  if (S.end) { if (S.end.t > .8 && hitCircle(p, 450, 1060, 90)) { SFX.pop(); reset(); } return; }
+  if (S.end) { if (S.end.t > .8 && hitCircle(p, W / 2, 770, 90)) { SFX.pop(); reset(); } return; }
   if (G.trans) return;
   if (S.scene === 'dine') { dineDown(p); return; }
   if (S.check > .7 && hitCircle(p, CHECK.x, CHECK.y, 80)) { SFX.ding(); SFX.whoosh(); G.trans = { t: 0, swapped: false }; S.check = 0; return; }
@@ -1664,7 +1701,7 @@ function drawTray(c) {
   c.restore(); c.restore();
   c.save(); rr(c, TRAY_IN.x - 30, T.y + 14, TRAY_IN.w + 60, T.h - 28, 12); c.clip();
   S.tray.forEach((it, i) => {
-    const x = itemX(it); if (x < -80 || x > 980) return;
+    const x = itemX(it); if (x < -80 || x > W + 80) return;
     if (tg === 'tray' && i === 0) glow(c, x, it.y, 64);
     const holding = S.held && S.held.type === 'item' && S.held.it === it;
     const sc = 1 + it.back * .2 * Math.sin(it.back * 12);
@@ -1679,10 +1716,10 @@ function drawTray(c) {
     g.addColorStop(side ? 0 : 1, 'rgba(42,101,38,0)'); g.addColorStop(side ? 1 : 0, 'rgba(30,75,28,.85)');
     c.fillStyle = g; c.fillRect(x0, T.y + 26, 70, T.h - 52);
     const ax = side ? T.x + T.w - 52 : T.x + 52, d = side ? 1 : -1, bob = Math.sin(G.t * 4) * 4 * d;
-    c.beginPath(); c.moveTo(ax - 8 * d + bob, 314); c.lineTo(ax + 8 * d + bob, 334); c.lineTo(ax - 8 * d + bob, 354);
+    const ay = T.y + T.h / 2; c.beginPath(); c.moveTo(ax - 8 * d + bob, ay - 20); c.lineTo(ax + 8 * d + bob, ay); c.lineTo(ax - 8 * d + bob, ay + 20);
     c.lineWidth = 7; c.lineCap = 'round'; c.lineJoin = 'round'; c.strokeStyle = 'rgba(255,255,255,.85)'; c.stroke();
   });
-  const tw = 300, tx = 450 - tw / 2, f = mx ? clamp(S.scroll / mx, 0, 1) : 0, kw = tw * TRAY_IN.w / (TRAY_IN.w + mx);
+  const tw = 360, tx = W / 2 - tw / 2, f = mx ? clamp(S.scroll / mx, 0, 1) : 0, kw = tw * TRAY_IN.w / (TRAY_IN.w + mx);
   rr(c, tx, T.y + T.h - 22, tw, 8, 4); c.fillStyle = 'rgba(255,255,255,.25)'; c.fill();
   rr(c, tx + (tw - kw) * f, T.y + T.h - 22, kw, 8, 4); c.fillStyle = 'rgba(255,255,255,.85)'; c.fill();
 }
@@ -1705,7 +1742,7 @@ function drawBoard(c) {
       c.save(); c.translate(cut, cy); c.scale(.34 * hh, .92 * hh); drawSprite(c, b.key, 's', WHOLE.r, 0, 0, 0, 1, .4); c.restore();
     }
   }
-  if (tg === 'pile' && b.slices.length) glow(c, b.slices[1] ? b.slices[1].x + 20 : 330, 730, 120);
+  if (tg === 'pile' && b.slices.length) glow(c, b.slices[1] ? b.slices[1].x + 20 : BOARD.x + 300, BOARD.y + 158, 120);
   if (!pileLifted()) drawSlices(c);
 }
 function pileLifted() { const b = S.board; return b && ((S.held && S.held.type === 'pile') || Math.hypot(b.off.x, b.off.y) > 2); }
@@ -1762,17 +1799,17 @@ function drawDecor(c) {
   for (let k = 0; k < 9; k++) { c.beginPath(); c.moveTo(Sl.x, Sl.y + 20 + k * 28); c.quadraticCurveTo(Sl.x + 200, Sl.y + k * 28 + 40, Sl.x + Sl.w, Sl.y + 30 + k * 26); c.stroke(); }
   c.restore(); c.restore();
   // 茶杯
-  c.save(); sh(c, 14, 3, 9, .35); circle(c, 140, 1410, 72); c.fillStyle = '#eef2f7'; c.fill(); noSh(c);
-  blueRing(c, 140, 1410, 54, 40, 14, 3); circle(c, 140, 1410, 52); const tg2 = c.createRadialGradient(130, 1400, 4, 140, 1410, 52); tg2.addColorStop(0, '#c7d79a'); tg2.addColorStop(1, '#8fa956'); c.fillStyle = tg2; c.fill();
-  ell(c, 122, 1392, 14, 6, -.6); c.fillStyle = 'rgba(255,255,255,.5)'; c.fill(); c.restore();
+  c.save(); sh(c, 14, 3, 9, .35); circle(c, TEA.x, TEA.y, 72); c.fillStyle = '#eef2f7'; c.fill(); noSh(c);
+  blueRing(c, TEA.x, TEA.y, 54, 40, 14, 3); circle(c, TEA.x, TEA.y, 52); const tg2 = c.createRadialGradient(TEA.x - 10, TEA.y - 10, 4, TEA.x, TEA.y, 52); tg2.addColorStop(0, '#c7d79a'); tg2.addColorStop(1, '#8fa956'); c.fillStyle = tg2; c.fill();
+  ell(c, TEA.x - 18, TEA.y - 18, 14, 6, -.6); c.fillStyle = 'rgba(255,255,255,.5)'; c.fill(); c.restore();
   // 醬油碟
-  c.save(); sh(c, 10, 2, 7, .3); circle(c, 320, 1440, 50); c.fillStyle = '#f4f6fa'; c.fill(); noSh(c);
-  circle(c, 320, 1440, 47); c.lineWidth = 2.5; c.strokeStyle = '#2d4b8f'; c.stroke();
-  circle(c, 320, 1440, 34); c.fillStyle = '#3a1a0e'; c.fill(); ell(c, 310, 1430, 10, 4, -.6); c.fillStyle = 'rgba(255,255,255,.35)'; c.fill(); c.restore();
+  c.save(); sh(c, 10, 2, 7, .3); circle(c, SOY.x, SOY.y, 50); c.fillStyle = '#f4f6fa'; c.fill(); noSh(c);
+  circle(c, SOY.x, SOY.y, 47); c.lineWidth = 2.5; c.strokeStyle = '#2d4b8f'; c.stroke();
+  circle(c, SOY.x, SOY.y, 34); c.fillStyle = '#3a1a0e'; c.fill(); ell(c, SOY.x - 10, SOY.y - 10, 10, 4, -.6); c.fillStyle = 'rgba(255,255,255,.35)'; c.fill(); c.restore();
 }
 function drawProgress(c) {
   if (!S.chunks.length && !S.stir) return;
-  const X0 = 150, X1 = 860, Y = 60, f = clamp(S.stir / S.goal, 0, 1);
+  const X0 = 120, X1 = W - 40, Y = 42, f = clamp(S.stir / S.goal, 0, 1);
   c.lineCap = 'round'; c.beginPath(); c.moveTo(X0, Y); c.lineTo(X1, Y); c.lineWidth = 12; c.strokeStyle = 'rgba(255,255,255,.18)'; c.stroke();
   if (f > 0) { const g = c.createLinearGradient(X0, 0, X1, 0); ['#ff7a9a', '#ffb43c', '#ffd34d', '#7ad65a', '#4fb0f5', '#a77bf0'].forEach((col, k) => g.addColorStop(k / 5, col)); c.beginPath(); c.moveTo(X0, Y); c.lineTo(X0 + (X1 - X0) * f, Y); c.strokeStyle = g; c.stroke(); }
 }
@@ -1820,7 +1857,7 @@ function hintFor(tg, t) {
     const x = lerp(WHOLE.x + 110 - off.x, WHOLE.x - 100 - off.x, e2), y = lerp(WHOLE.y - 110 - off.y, WHOLE.y + 110 - off.y, e2), bp = knifeBlade(x, y);
     return { x, y, press: true, draw: c => { c.save(); c.globalAlpha *= .65; drawKnifeTool(c, bp.x, bp.y, bp.ang, KNIFE_K); c.restore(); } };
   }
-  if (tg === 'pile') return { x: lerp(340, BOWL.x, e), y: lerp(730, BOWL.y, e), press: k < 1.4 };
+  if (tg === 'pile') return { x: lerp(BOARD.x + 310, BOWL.x, e), y: lerp(BOARD.y + 158, BOWL.y, e), press: k < 1.4 };
   if (tg === 'chop') {
     if (k < .6) return { x: CHOP_REST.x + 150, y: CHOP_REST.y + 10, press: k > .35 };
     const a = (k - .6) * 5; const x = BOWL.x + Math.cos(a) * 100, y = BOWL.y + Math.sin(a) * 100;
@@ -1840,7 +1877,7 @@ function hintFor(tg, t) {
 function drawEnd(c) {
   const E = S.end, v = viewRect(), k = easeOutBack(Math.min(1, E.t * 2));
   c.save(); c.globalAlpha = Math.min(1, E.t * 2) * .5; c.fillStyle = '#140c06'; c.fillRect(v.x, v.y, v.w, v.h); c.restore();
-  c.save(); c.translate(450, 760); c.scale(k, k);
+  c.save(); c.translate(W / 2, 470); c.scale(k, k);
   sh(c, 30, 0, 16, .45); rr(c, -320, -330, 640, 720, 40); c.fillStyle = '#fbf6ec'; c.fill(); noSh(c);
   rr(c, -320, -330, 640, 110, 40); c.fillStyle = '#1e2d57'; c.fill(); c.fillStyle = '#fbf6ec'; c.fillRect(-320, -250, 640, 30);
   [-100, 0, 100].forEach((x, i) => { const s2 = easeOutBack(clamp(E.t * 3 - .6 - i * .3, 0, 1)); c.save(); c.translate(x, -278 - (i === 1 ? 10 : 0)); c.scale(s2, s2); starPath(c, 38); ink(c, '#ffd34d', 5); c.restore(); });
@@ -1851,7 +1888,7 @@ function drawEnd(c) {
   const icons = [...new Set(S.ingredients)].slice(0, 7), w = 70, x0 = -(icons.length - 1) * w / 2;
   icons.forEach((key, i) => drawSprite(c, key, 'w', 24, x0 + i * w, 175, 0, 1, .6));
   c.restore();
-  if (E.t > .8) drawRoundBtn(c, 450, 1060, 72, '#5ccf4a', iconReplay, false);
+  if (E.t > .8) drawRoundBtn(c, W / 2, 770, 72, '#5ccf4a', iconReplay, false);
 }
 function render() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = '#c99d63'; ctx.fillRect(0, 0, cw, ch);
@@ -1874,7 +1911,7 @@ function render() {
   if (G.trans) {
     const k = clamp(1 - Math.abs(G.trans.t - .4) / .4, 0, 1);
     c.save(); c.globalAlpha = k; c.fillStyle = '#fbf3e4'; c.fillRect(v.x, v.y, v.w, v.h);
-    c.translate(450, 800); c.rotate(G.t * 3); c.scale(1 + k, 1 + k); starPath(c, 60); ink(c, '#ffd34d', 6); c.restore();
+    c.translate(W / 2, H / 2); c.rotate(G.t * 3); c.scale(1 + k, 1 + k); starPath(c, 60); ink(c, '#ffd34d', 6); c.restore();
   }
   if (S.end) drawEnd(c);
   else if (!G.pointer.down && G.idle > 2.6) {
@@ -1898,11 +1935,11 @@ cv.addEventListener('pointermove', e => {
 });
 function endP(e) { if (e.pointerId !== G.pointer.id) return; up(toLogical(e)); G.pointer.down = false; G.pointer.id = null; }
 cv.addEventListener('pointerup', endP); cv.addEventListener('pointercancel', endP);
-['gesturestart', 'gesturechange', 'gestureend', 'dblclick', 'contextmenu', 'selectstart'].forEach(ev => document.addEventListener(ev, e => e.preventDefault(), { passive: false }));
+['gesturestart', 'gesturechange', 'gestureend', 'dblclick', 'contextmenu', 'selectstart', 'dragstart'].forEach(ev => document.addEventListener(ev, e => e.preventDefault(), { passive: false }));
 document.addEventListener('touchstart', e => { if (e.touches.length > 1 || e.target === cv) e.preventDefault(); }, { passive: false });
 document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
 let lastTouchEnd = 0;
-document.addEventListener('touchend', e => { const n = Date.now(); if (n - lastTouchEnd < 350) e.preventDefault(); lastTouchEnd = n; }, { passive: false });
+document.addEventListener('touchend', e => { const n = Date.now(); if (n - lastTouchEnd < 400 || e.touches.length) e.preventDefault(); lastTouchEnd = n; }, { passive: false });
 document.addEventListener('wheel', e => { if (e.ctrlKey) e.preventDefault(); }, { passive: false });
 document.addEventListener('visibilitychange', () => { if (document.hidden && SFX.ac) { SFX.setLoop('sauce', 0); SFX.setLoop('swirl', 0); } });
 
